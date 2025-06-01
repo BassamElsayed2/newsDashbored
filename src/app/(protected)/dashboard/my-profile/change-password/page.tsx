@@ -17,16 +17,16 @@ export default function Page() {
               <i className="material-symbols-outlined absolute ltr:left-0 rtl:right-0 !text-lg -mt-px text-primary-500 top-1/2 -translate-y-1/2">
                 home
               </i>
-              Dashboard
+              رئيسية
             </Link>
           </li>
 
           <li className="breadcrumb-item inline-block relative text-sm mx-[11px] ltr:first:ml-0 rtl:first:mr-0 ltr:last:mr-0 rtl:last:ml-0">
-            Settings
+            الاعدادات
           </li>
 
           <li className="breadcrumb-item inline-block relative text-sm mx-[11px] ltr:first:ml-0 rtl:first:mr-0 ltr:last:mr-0 rtl:last:ml-0">
-            Change Password
+            تغيير كلمة المرور
           </li>
         </ol>
       </div>
@@ -34,7 +34,7 @@ export default function Page() {
       <div className="trezo-card bg-white dark:bg-[#0c1427] mb-[25px] p-[20px] md:p-[25px] rounded-md">
         <div className="trezo-card-content">
           <Nav />
-          
+
           <ChangePasswordForm />
         </div>
       </div>
