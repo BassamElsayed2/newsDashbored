@@ -12,6 +12,7 @@ import { Inter } from "next/font/google";
 
 import QueryProvider from "@/providers/QueryProvider";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { Toaster } from "react-hot-toast";
 
 const inter = Inter({
   variable: "--font-body",
@@ -35,6 +36,7 @@ export default function RootLayout({
           <ReactQueryDevtools initialIsOpen={false} />
           {children}
         </QueryProvider>
+        <Toaster position="top-center" />
       </body>
     </html>
   );

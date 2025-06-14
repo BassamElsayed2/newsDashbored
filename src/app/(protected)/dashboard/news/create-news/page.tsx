@@ -91,7 +91,31 @@ const CreateNewsForm: React.FC = () => {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       const filesArray = Array.from(event.target.files);
-      setSelectedImages((prevImages) => [...prevImages, ...filesArray]);
+
+      // التحقق من عدد الصور
+      if (selectedImages.length + filesArray.length > 5) {
+        toast.error("يمكنك رفع 5 صور كحد أقصى");
+        return;
+      }
+
+      // التحقق من نوع وحجم الصور
+      const validFiles = filesArray.filter((file) => {
+        // التحقق من نوع الملف
+        if (!file.type.startsWith("image/")) {
+          toast.error(`الملف ${file.name} ليس صورة`);
+          return false;
+        }
+
+        // التحقق من حجم الملف (50MB كحد أقصى)
+        if (file.size > 50 * 1024 * 1024) {
+          toast.error(`حجم الصورة ${file.name} يجب أن لا يتجاوز 50MB`);
+          return false;
+        }
+
+        return true;
+      });
+
+      setSelectedImages((prevImages) => [...prevImages, ...validFiles]);
     }
   };
 
@@ -294,6 +318,7 @@ const CreateNewsForm: React.FC = () => {
                       </Editor>
                     </EditorProvider>
                   </div>
+
                   <div className="sm:col-span-2 mb-[20px] sm:mb-0">
                     <label className="mb-[10px] text-black dark:text-white font-medium block">
                       الخبر (بالانجليزي)
@@ -353,15 +378,20 @@ const CreateNewsForm: React.FC = () => {
 
                     <div id="fileUploader">
                       <div className="relative flex items-center justify-center overflow-hidden rounded-md py-[88px] px-[20px] border border-gray-200 dark:border-[#172036]">
-                        <div className="flex items-center justify-center">
-                          <div className="w-[35px] h-[35px] border border-gray-100 dark:border-[#15203c] flex items-center justify-center rounded-md text-primary-500 text-lg ltr:mr-[12px] rtl:ml-[12px]">
+                        <div className="flex flex-col items-center justify-center text-center">
+                          <div className="w-[35px] h-[35px] border border-gray-100 dark:border-[#15203c] flex items-center justify-center rounded-md text-primary-500 text-lg mb-3">
                             <i className="ri-upload-2-line"></i>
                           </div>
-                          <p className="leading-[1.5]">
+                          <p className="leading-[1.5] mb-2">
                             <strong className="text-black dark:text-white">
                               اضغط لرفع
                             </strong>
                             <br /> الصور من هنا
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            الحد الأقصى: 5 صور
+                            <br />
+                            حجم الصورة: حتى 50 ميجابايت
                           </p>
                         </div>
 

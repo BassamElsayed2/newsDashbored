@@ -20,8 +20,10 @@ export async function getNews(
   page = 1,
   limit = 10,
   filters?: {
-    categoryId?: string; // غيرت من number لـ string
+    categoryId?: string;
     status?: string;
+    search?: string;
+    date?: string;
   }
 ): Promise<{ news: News[]; total: number }> {
   const from = (page - 1) * limit;
@@ -34,7 +36,39 @@ export async function getNews(
   }
 
   if (filters?.status) {
-    query = query.eq("status", filters.status);
+    if (filters.status === "normal") {
+      query = query.or("status.is.null,status.eq.''");
+    } else {
+      query = query.eq("status", filters.status);
+    }
+  }
+
+  if (filters?.search) {
+    query = query.or(
+      `title_ar.ilike.%${filters.search}%,title_en.ilike.%${filters.search}%`
+    );
+  }
+
+  if (filters?.date) {
+    const now = new Date();
+    const startDate = new Date();
+
+    switch (filters.date) {
+      case "today":
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case "week":
+        startDate.setDate(now.getDate() - 7);
+        break;
+      case "month":
+        startDate.setMonth(now.getMonth() - 1);
+        break;
+      case "year":
+        startDate.setFullYear(now.getFullYear() - 1);
+        break;
+    }
+
+    query = query.gte("created_at", startDate.toISOString());
   }
 
   query = query.order("created_at", { ascending: false });

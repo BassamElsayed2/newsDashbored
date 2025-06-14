@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import supabase from "../../../../../../services/supabase";
 import toast from "react-hot-toast";
@@ -12,6 +12,9 @@ type FormData = {
   link: string;
   location: string;
 };
+
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export default function CreateAds() {
   const router = useRouter();
@@ -27,55 +30,86 @@ export default function CreateAds() {
     reset,
   } = useForm<FormData>();
 
+  // Cleanup preview URL when component unmounts
+  useEffect(() => {
+    return () => {
+      if (previewImage) {
+        URL.revokeObjectURL(previewImage);
+      }
+    };
+  }, [previewImage]);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setSelectedImage(file);
-      setPreviewImage(URL.createObjectURL(file));
+    if (!file) return;
+
+    // Check file type
+    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+      toast.error(
+        "نوع الملف غير مدعوم. يرجى اختيار صورة بصيغة JPG أو PNG أو WEBP"
+      );
+      return;
     }
+
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("حجم الصورة كبير جداً. الحد الأقصى هو 50 ميجابايت");
+      return;
+    }
+
+    // Cleanup previous preview URL
+    if (previewImage) {
+      URL.revokeObjectURL(previewImage);
+    }
+
+    setSelectedImage(file);
+    setPreviewImage(URL.createObjectURL(file));
   };
 
   const onSubmit = async (data: FormData) => {
     if (!selectedImage) {
-      toast("الصورة مطلوبة");
+      toast.error("الصورة مطلوبة");
       return;
     }
 
     setLoading(true);
 
-    const fileExt = selectedImage.name.split(".").pop();
-    const fileName = `${Date.now()}.${fileExt}`;
+    try {
+      const fileExt = selectedImage.name.split(".").pop();
+      const fileName = `${Date.now()}.${fileExt}`;
 
-    const { error: imageUploadError } = await supabase.storage
-      .from("adsmedia")
-      .upload(fileName, selectedImage);
+      const { error: imageUploadError } = await supabase.storage
+        .from("adsmedia")
+        .upload(fileName, selectedImage);
 
-    if (imageUploadError) {
-      console.error(imageUploadError);
-      toast.error("فشل في رفع الصورة");
-      setLoading(false);
-      return;
-    }
+      if (imageUploadError) {
+        throw new Error("فشل في رفع الصورة");
+      }
 
-    const imageUrl = supabase.storage.from("adsmedia").getPublicUrl(fileName)
-      .data.publicUrl;
+      const imageUrl = supabase.storage.from("adsmedia").getPublicUrl(fileName)
+        .data.publicUrl;
 
-    const { error: insertError } = await supabase
-      .from("ads")
-      .insert([{ ...data, image_url: imageUrl }]);
+      const { error: insertError } = await supabase
+        .from("ads")
+        .insert([{ ...data, image_url: imageUrl }]);
 
-    if (insertError) {
-      console.error(insertError);
-      toast.error("حدث خطأ أثناء حفظ البيانات");
-    } else {
+      if (insertError) {
+        throw new Error("حدث خطأ أثناء حفظ البيانات");
+      }
+
       reset();
       setSelectedImage(null);
+      if (previewImage) {
+        URL.revokeObjectURL(previewImage);
+      }
       setPreviewImage(null);
       toast.success("تم إنشاء الإعلان بنجاح");
       router.push("/dashboard/ads");
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -95,10 +129,18 @@ export default function CreateAds() {
                   العنوان (ar)
                 </label>
                 <input
-                  {...register("title_ar", { required: true })}
+                  {...register("title_ar", {
+                    required: "العنوان بالعربية مطلوب",
+                    minLength: {
+                      value: 3,
+                      message: "العنوان يجب أن يكون 3 أحرف على الأقل",
+                    },
+                  })}
                   className="h-[55px] rounded-md text-black dark:text-white border border-gray-200 dark:border-[#172036] bg-white dark:bg-[#0c1427] px-[17px] block w-full outline-0 transition-all"
                 />
-                {errors.title_ar && <p className="text-red-500 mt-1">مطلوب</p>}
+                {errors.title_ar && (
+                  <p className="text-red-500 mt-1">{errors.title_ar.message}</p>
+                )}
               </div>
 
               <div className="mb-[20px]">
@@ -106,11 +148,17 @@ export default function CreateAds() {
                   العنوان (en)
                 </label>
                 <input
-                  {...register("title_en", { required: true })}
+                  {...register("title_en", {
+                    required: "العنوان بالإنجليزية مطلوب",
+                    minLength: {
+                      value: 3,
+                      message: "العنوان يجب أن يكون 3 أحرف على الأقل",
+                    },
+                  })}
                   className="h-[55px] rounded-md text-black dark:text-white border border-gray-200 dark:border-[#172036] bg-white dark:bg-[#0c1427] px-[17px] block w-full outline-0 transition-all"
                 />
                 {errors.title_en && (
-                  <p className="text-red-500 mt-1">Required</p>
+                  <p className="text-red-500 mt-1">{errors.title_en.message}</p>
                 )}
               </div>
 
@@ -119,10 +167,19 @@ export default function CreateAds() {
                   رابط الإعلان
                 </label>
                 <input
-                  {...register("link", { required: true })}
+                  {...register("link", {
+                    required: "رابط الإعلان مطلوب",
+                    pattern: {
+                      value:
+                        /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/,
+                      message: "الرجاء إدخال رابط صحيح",
+                    },
+                  })}
                   className="h-[55px] rounded-md text-black dark:text-white border border-gray-200 dark:border-[#172036] bg-white dark:bg-[#0c1427] px-[17px] block w-full outline-0 transition-all"
                 />
-                {errors.link && <p className="text-red-500 mt-1">مطلوب</p>}
+                {errors.link && (
+                  <p className="text-red-500 mt-1">{errors.link.message}</p>
+                )}
               </div>
 
               <div className="mb-[20px] sm:mb-0">
@@ -130,7 +187,7 @@ export default function CreateAds() {
                   مكان الإعلان
                 </label>
                 <select
-                  {...register("location", { required: true })}
+                  {...register("location", { required: "مكان الإعلان مطلوب" })}
                   className="h-[55px] rounded-md border border-gray-200 dark:border-[#172036] bg-white dark:bg-[#0c1427] px-[13px] block w-full outline-0 cursor-pointer transition-all focus:border-primary-500"
                 >
                   <option value="">اختر مكان الإعلان</option>
@@ -139,7 +196,9 @@ export default function CreateAds() {
                   <option value="profile">الملف الشخصي</option>
                   <option value="settings">الإعدادات</option>
                 </select>
-                {errors.location && <p className="text-red-500 mt-1">مطلوب</p>}
+                {errors.location && (
+                  <p className="text-red-500 mt-1">{errors.location.message}</p>
+                )}
               </div>
 
               <div className="sm:col-span-2">
@@ -151,14 +210,14 @@ export default function CreateAds() {
                     <div className="w-[35px] h-[35px] border border-gray-100 dark:border-[#15203c] flex items-center justify-center rounded-md text-primary-500 text-lg ltr:mr-[12px] rtl:ml-[12px]">
                       <i className="ri-upload-2-line"></i>
                     </div>
-                    <p>
-                      <strong>Click to upload</strong>
-                      <br /> your file here
+                    <p className="text-black dark:text-white">
+                      <strong>اضغط لرفع الصورة</strong>
+                      <br /> JPG, PNG, WEBP (الحد الأقصى 50 ميجابايت)
                     </p>
                   </div>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp"
                     className="absolute inset-0 opacity-0 cursor-pointer"
                     onChange={handleFileChange}
                   />
@@ -179,6 +238,9 @@ export default function CreateAds() {
                         className="absolute top-[-5px] right-[-5px] bg-orange-500 text-white w-[20px] h-[20px] flex items-center justify-center rounded-full text-xs"
                         onClick={() => {
                           setSelectedImage(null);
+                          if (previewImage) {
+                            URL.revokeObjectURL(previewImage);
+                          }
                           setPreviewImage(null);
                         }}
                       >
@@ -194,7 +256,7 @@ export default function CreateAds() {
               <button
                 type="submit"
                 disabled={loading}
-                className="font-medium inline-block transition-all rounded-md 2xl:text-md py-[10px] md:py-[12px] px-[20px] md:px-[22px] bg-primary-500 text-white hover:bg-primary-400"
+                className="font-medium inline-block transition-all rounded-md 2xl:text-md py-[10px] md:py-[12px] px-[20px] md:px-[22px] bg-primary-500 text-white hover:bg-primary-400 disabled:opacity-50"
               >
                 {loading ? "جارٍ الإرسال..." : "إنشاء"}
               </button>

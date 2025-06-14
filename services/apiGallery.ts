@@ -9,6 +9,14 @@ type NewGallery = {
   image_urls: File[];
 };
 
+type UpdateGalleryData = {
+  title_ar: string;
+  title_en: string;
+  description_ar?: string;
+  description_en?: string;
+  image_urls: string[];
+};
+
 export async function CreateGallery(newGallery: NewGallery) {
   const uploadedUrls: string[] = [];
 
@@ -119,6 +127,27 @@ export async function deleteGalleries(id: string) {
 
   if (deleteDbError) {
     throw new Error("حدث خطأ أثناء حذف المعرض من قاعدة البيانات");
+  }
+
+  return data;
+}
+
+export async function updateGallery(id: string, updateData: UpdateGalleryData) {
+  const { data, error } = await supabase
+    .from("galleries")
+    .update({
+      title_ar: updateData.title_ar,
+      title_en: updateData.title_en,
+      description_ar: updateData.description_ar || "",
+      description_en: updateData.description_en || "",
+      image_urls: updateData.image_urls,
+    })
+    .eq("id", id)
+    .select();
+
+  if (error) {
+    console.error("Update error:", error);
+    throw new Error("فشل في تحديث المعرض");
   }
 
   return data;

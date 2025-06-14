@@ -9,13 +9,33 @@ export function useAddCategory() {
     mutationFn: async ({
       name_ar,
       name_en,
+      image,
     }: {
       name_ar: string;
       name_en: string;
+      image?: File;
     }) => {
+      let image_url = undefined;
+
+      if (image) {
+        const fileExt = image.name.split(".").pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from("cat-img")
+          .upload(fileName, image);
+
+        if (uploadError) throw new Error(uploadError.message);
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("cat-img").getPublicUrl(fileName);
+
+        image_url = publicUrl;
+      }
+
       const { error } = await supabase
         .from("categories")
-        .insert([{ name_ar, name_en }]);
+        .insert([{ name_ar, name_en, image_url }]);
 
       if (error) throw new Error(error.message);
     },
