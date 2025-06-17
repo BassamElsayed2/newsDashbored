@@ -10,6 +10,6 @@ export function useAdminProfile() {
   return useQuery({
     queryKey: ["adminProfile", user?.id],
     queryFn: () => getAdminProfileById(user!.id),
-    enabled: !!user?.id, // ما يشتغلش غير لما يكون فيه user
+    enabled: !!user?.id,
   });
 }

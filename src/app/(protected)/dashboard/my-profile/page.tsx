@@ -1,5 +1,6 @@
 "use client";
 
+import PageInformation from "@/components/MyProfile/PageInformation";
 import ProfileInformation from "@/components/MyProfile/ProfileInformation";
 import ProfileIntro from "@/components/MyProfile/ProfileIntro";
 import { useAdminProfile } from "@/components/MyProfile/useAdminProfile";
@@ -44,7 +45,7 @@ export default function Page() {
         <div className="lg:col-span-1">
           <Nav />
           <ProfileIntro profile={profile} />
-
+          <PageInformation />
           <ProfileInformation profile={profile} />
         </div>
       </div>

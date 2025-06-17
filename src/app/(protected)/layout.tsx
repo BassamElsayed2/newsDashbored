@@ -1,5 +1,6 @@
 // app/(protected)/layout.tsx
 import LayoutProvider from "@/providers/LayoutProvider";
+import { HiddenPagesProvider } from "@/providers/HiddenPagesContext";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -21,9 +22,11 @@ export default async function ProtectedLayout({
   }
 
   return (
-    <LayoutProvider>
-      {children}
-      <Toaster />
-    </LayoutProvider>
+    <HiddenPagesProvider>
+      <LayoutProvider>
+        {children}
+        <Toaster />
+      </LayoutProvider>
+    </HiddenPagesProvider>
   );
 }
