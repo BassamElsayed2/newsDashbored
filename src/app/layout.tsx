@@ -11,7 +11,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 
 import QueryProvider from "@/providers/QueryProvider";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Toaster } from "react-hot-toast";
 
 const inter = Inter({
@@ -32,10 +31,7 @@ export default function RootLayout({
   return (
     <html lang="en" dir="rtl">
       <body className={`${inter.variable} antialiased`}>
-        <QueryProvider>
-          <ReactQueryDevtools initialIsOpen={false} />
-          {children}
-        </QueryProvider>
+        <QueryProvider>{children}</QueryProvider>
         <Toaster position="top-center" />
       </body>
     </html>
